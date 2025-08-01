@@ -145,9 +145,7 @@ class MonthlyTransactionsAdapter(
                 tvTransactionAmount.text = "$${String.format("%.2f", transaction.amount)}"
                 
                 val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-                val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
                 tvTransactionDate.text = transaction.date.format(dateFormatter)
-                tvTransactionTime.text = transaction.date.format(timeFormatter)
                 
                 // Set color based on transaction type
                 val color = if (transaction.type == com.example.walletlens.data.entity.TransactionType.INCOME) {

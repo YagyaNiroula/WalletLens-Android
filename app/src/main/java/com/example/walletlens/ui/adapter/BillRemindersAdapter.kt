@@ -10,7 +10,8 @@ import java.time.format.FormatStyle
 
 class BillRemindersAdapter(
     private val onReminderClick: (Reminder) -> Unit,
-    private val onReminderComplete: (Long) -> Unit
+    private val onReminderEdit: (Reminder) -> Unit,
+    private val onReminderMarkPaid: (Reminder) -> Unit
 ) : RecyclerView.Adapter<BillRemindersAdapter.ReminderViewHolder>() {
 
     private var reminders: List<Reminder> = emptyList()
@@ -43,53 +44,23 @@ class BillRemindersAdapter(
         fun bind(reminder: Reminder) {
             binding.apply {
                 tvReminderTitle.text = reminder.title
-                tvReminderDescription.text = reminder.description
                 tvReminderAmount.text = "$${String.format("%.2f", reminder.amount)}"
-                tvReminderDueDate.text = "Due: ${reminder.dueDate.format(dateFormatter)}"
-                tvReminderCategory.text = reminder.category
+                tvReminderDueDate.text = reminder.dueDate.format(dateFormatter)
+
+                // Set the visual state of the paid button
+                btnMarkPaid.isActivated = reminder.isCompleted
 
                 // Set click listeners
                 root.setOnClickListener {
                     onReminderClick(reminder)
                 }
 
-                btnComplete.setOnClickListener {
-                    onReminderComplete(reminder.id)
+                btnEdit.setOnClickListener {
+                    onReminderEdit(reminder)
                 }
-
-                // Set urgency color based on days until due
-                val daysUntilDue = java.time.temporal.ChronoUnit.DAYS.between(
-                    java.time.LocalDate.now(),
-                    reminder.dueDate.toLocalDate()
-                )
-
-                when {
-                    daysUntilDue < 0 -> {
-                        // Overdue
-                        root.setCardBackgroundColor(
-                            root.context.getColor(android.R.color.holo_red_light)
-                        )
-                        tvReminderDueDate.text = "OVERDUE"
-                    }
-                    daysUntilDue == 0L -> {
-                        // Due today
-                        root.setCardBackgroundColor(
-                            root.context.getColor(android.R.color.holo_orange_light)
-                        )
-                        tvReminderDueDate.text = "Due Today"
-                    }
-                    daysUntilDue <= 3 -> {
-                        // Due soon
-                        root.setCardBackgroundColor(
-                            root.context.getColor(android.R.color.holo_orange_light)
-                        )
-                    }
-                    else -> {
-                        // Not urgent
-                        root.setCardBackgroundColor(
-                            root.context.getColor(android.R.color.white)
-                        )
-                    }
+                
+                btnMarkPaid.setOnClickListener {
+                    onReminderMarkPaid(reminder)
                 }
             }
         }

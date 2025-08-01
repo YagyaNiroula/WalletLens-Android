@@ -354,10 +354,13 @@ class MainActivity : AppCompatActivity() {
                     // Handle reminder click
                     Toast.makeText(this, "Reminder: ${reminder.title}", Toast.LENGTH_SHORT).show()
                 },
-                onReminderComplete = { reminderId ->
-                    // Handle reminder completion
-                    viewModel.markReminderAsCompleted(reminderId)
-                    Toast.makeText(this, "Reminder marked as completed", Toast.LENGTH_SHORT).show()
+                onReminderEdit = { reminder ->
+                    // Handle reminder edit
+                    showEditReminderDialog(reminder)
+                },
+                onReminderMarkPaid = { reminder ->
+                    // Handle marking reminder as paid
+                    showMarkAsPaidDialog(reminder)
                 }
             )
             
@@ -463,6 +466,74 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             
+            // Budget observers
+            viewModel.budgetSpent.observe(this) { spent ->
+                try {
+                    // Update the spent amount in the budget section
+                    val budgetSpentText = findViewById<TextView>(R.id.tvBudgetSpent)
+                    budgetSpentText?.text = "Spent: $${formatAmount(spent)}"
+                    Log.d("MainActivity", "Budget spent updated: $${formatAmount(spent)}")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error updating budget spent: ${e.message}")
+                }
+            }
+            
+            viewModel.monthlyBudget.observe(this) { budget ->
+                try {
+                    // Update the budget amount in the budget section
+                    val budgetAmountText = findViewById<TextView>(R.id.tvBudgetAmount)
+                    budgetAmountText?.text = "Budget: $${formatAmount(budget)}"
+                    Log.d("MainActivity", "Monthly budget updated: $${formatAmount(budget)}")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error updating monthly budget: ${e.message}")
+                }
+            }
+            
+            viewModel.budgetRemaining.observe(this) { remaining ->
+                try {
+                    // Update the remaining amount in the budget section
+                    val budgetRemainingText = findViewById<TextView>(R.id.tvBudgetRemaining)
+                    budgetRemainingText?.text = "$${formatAmount(remaining)}"
+                    
+                    // Set color based on remaining amount
+                    val color = if (remaining < 0) {
+                        getColor(R.color.expense_red)
+                    } else {
+                        getColor(R.color.income_green)
+                    }
+                    budgetRemainingText?.setTextColor(color)
+                    Log.d("MainActivity", "Budget remaining updated: $${formatAmount(remaining)}")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error updating budget remaining: ${e.message}")
+                }
+            }
+            
+            viewModel.budgetUsedPercentage.observe(this) { percentage ->
+                try {
+                    // Update the used percentage in the budget section
+                    val budgetUsedText = findViewById<TextView>(R.id.tvBudgetUsed)
+                    budgetUsedText?.text = "${String.format("%.1f", percentage)}%"
+                    
+                    // Set color based on percentage
+                    val color = if (percentage > 100) {
+                        getColor(R.color.expense_red)
+                    } else if (percentage > 80) {
+                        getColor(R.color.warning_orange)
+                    } else {
+                        getColor(R.color.expense_red)
+                    }
+                    budgetUsedText?.setTextColor(color)
+                    
+                    // Update progress bar
+                    val progressBar = findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.budgetProgressBar)
+                    progressBar?.progress = percentage.toInt().coerceIn(0, 100)
+                    
+                    Log.d("MainActivity", "Budget used percentage updated: ${String.format("%.1f", percentage)}%")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error updating budget used percentage: ${e.message}")
+                }
+            }
+            
             Log.d("MainActivity", "Data observers setup completed successfully")
         } catch (e: Exception) {
             Log.e("MainActivity", "Error setting up data observers: ${e.message}", e)
@@ -505,52 +576,48 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val customColors = listOf(
-                    ContextCompat.getColor(this, R.color.primary_color),
-                    ContextCompat.getColor(this, R.color.expense_red),
-                    ContextCompat.getColor(this, R.color.income_green),
-                    ContextCompat.getColor(this, R.color.balance_blue),
-                    ContextCompat.getColor(this, R.color.warning_orange),
-                    ContextCompat.getColor(this, R.color.primary_dark),
-                    ContextCompat.getColor(this, R.color.accent_color),
-                    ContextCompat.getColor(this, R.color.primary_light)
+                    ContextCompat.getColor(this, R.color.balance_blue),      // Blue
+                    ContextCompat.getColor(this, R.color.expense_red),       // Red
+                    ContextCompat.getColor(this, R.color.income_green),      // Green
+                    ContextCompat.getColor(this, R.color.warning_orange),    // Orange
+                    ContextCompat.getColor(this, R.color.primary_dark),      // Purple
+                    ContextCompat.getColor(this, R.color.accent_color),      // Pink/Red
+                    ContextCompat.getColor(this, R.color.primary_color),     // Yellow
+                    ContextCompat.getColor(this, R.color.secondary_text)     // Grey
                 )
 
                 val dataSet = PieDataSet(entries, "Expenses by Category")
-                dataSet.colors = customColors
-                dataSet.valueTextSize = 16f
-                dataSet.valueTextColor = ContextCompat.getColor(this, R.color.black)
-                dataSet.valueLinePart1Length = 0.7f
-                dataSet.valueLinePart2Length = 0.5f
-                dataSet.valueLineColor = ContextCompat.getColor(this, R.color.secondary_text)
-                dataSet.valueLineWidth = 2.5f
-                dataSet.yValuePosition = PieDataSet.ValuePosition.INSIDE_SLICE
-                dataSet.xValuePosition = PieDataSet.ValuePosition.INSIDE_SLICE
-                dataSet.sliceSpace = 4f
-                dataSet.selectionShift = 10f
-                dataSet.setDrawValues(true)
+                dataSet.colors = customColors.take(entries.size)
+                dataSet.valueTextSize = 0f  // Hide values on pie chart
+                dataSet.sliceSpace = 0f  // No space between slices
+                dataSet.selectionShift = 0f  // No selection shift
+                dataSet.setDrawValues(false)
                 dataSet.setDrawIcons(false)
-                dataSet.setAutomaticallyDisableSliceSpacing(false)
 
                 val pieData = PieData(dataSet)
-                pieData.setValueFormatter(PercentFormatter(binding.pieChart))
 
                 // Update the widget UI on the main thread
                 runOnUiThread {
                     binding.pieChart.apply {
                         data = pieData
                         description.isEnabled = false
-                        legend.isEnabled = true
-                        legend.textSize = 12f
-                        legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.BOTTOM
-                        legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
-                        setUsePercentValues(true)
-                        setEntryLabelTextSize(12f)
+                        legend.isEnabled = false  // Disable built-in legend
+                        setUsePercentValues(false)
+                        setEntryLabelTextSize(0f)  // Hide labels
                         setEntryLabelColor(ContextCompat.getColor(this@MainActivity, R.color.black))
+                        
+                        // Ensure full pie chart
+                        setDrawHoleEnabled(false)  // No center hole
+                        setTransparentCircleRadius(0f)  // No transparent circle
+                        setHoleRadius(0f)  // No hole radius
                         
                         // Faster animation for smoother experience
                         animateY(500)
                         invalidate()
                     }
+                    
+                    // Create custom legend
+                    createCustomLegend(grouped, customColors.take(entries.size))
                 }
             } catch (e: Exception) {
                 // Handle any errors silently to prevent crashes
@@ -706,95 +773,67 @@ class MainActivity : AppCompatActivity() {
     
     private fun showAddReminderDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_reminder, null)
-        val titleEditText = dialogView.findViewById<EditText>(R.id.etReminderTitle)
-        val descriptionEditText = dialogView.findViewById<EditText>(R.id.etReminderDescription)
-        val amountEditText = dialogView.findViewById<EditText>(R.id.etReminderAmount)
-        val categorySpinner = dialogView.findViewById<AutoCompleteTextView>(R.id.spinnerCategory)
-        val dueDateEditText = dialogView.findViewById<EditText>(R.id.etReminderDueDate)
-
-        // Setup categories
-        val categories = listOf(
-            "Utilities", "Rent", "Insurance", "Phone", "Internet", 
-            "Groceries", "Transportation", "Healthcare", "Entertainment", "Other"
-        )
-        val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
-        categorySpinner.setAdapter(categoryAdapter)
-        categorySpinner.setText(categories[0], false)
-
-        // Setup date picker
-        dueDateEditText.setOnClickListener {
-            val calendar = java.util.Calendar.getInstance()
-            val year = calendar.get(java.util.Calendar.YEAR)
-            val month = calendar.get(java.util.Calendar.MONTH)
-            val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
-
-            val datePickerDialog = android.app.DatePickerDialog(
-                this,
-                { _, selectedYear, selectedMonth, selectedDay ->
-                    val selectedDate = LocalDateTime.of(selectedYear, selectedMonth + 1, selectedDay, 0, 0)
-                    dueDateEditText.setText(selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")))
-                },
-                year, month, day
-            )
-            datePickerDialog.show()
-        }
-
+        
+        // Initialize views
+        val titleEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etBillTitle)
+        val amountEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etAmount)
+        val notesEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etNotes)
+        val dateButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSelectDate)
+        
         // Set default date (7 days from now)
         val defaultDate = LocalDateTime.now().plusDays(7)
-        dueDateEditText.setText(defaultDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")))
-
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
-
-        // Set up button click listeners
-        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveReminder).setOnClickListener {
-            val title = titleEditText.text.toString()
-            val description = descriptionEditText.text.toString()
-            val amount = amountEditText.text.toString().toDoubleOrNull() ?: 0.0
-            val category = categorySpinner.text.toString()
-            val dateText = dueDateEditText.text.toString()
+        dateButton.text = defaultDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+        
+        var selectedDate = defaultDate
+        
+        // Date picker functionality
+        dateButton.setOnClickListener {
+            val datePicker = com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Select Due Date")
+                .setSelection(com.google.android.material.datepicker.MaterialDatePicker.todayInUtcMilliseconds())
+                .build()
             
-            if (title.isNotBlank() && amount > 0) {
-                val dueDate = try {
-                    // Parse the date string like "Dec 15, 2024" to LocalDateTime
-                    val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-                    val localDate = java.time.LocalDate.parse(dateText, formatter)
-                    LocalDateTime.of(localDate, java.time.LocalTime.of(0, 0))
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "Error parsing date: $dateText", e)
-                    LocalDateTime.now().plusDays(7)
-                }
-                
-                val reminder = com.example.walletlens.data.entity.Reminder(
-                    title = title,
-                    description = description.ifBlank { "Bill payment reminder" },
-                    amount = amount,
-                    dueDate = dueDate,
-                    category = category
-                )
-                
-                // Save reminder to database
-                Log.d("MainActivity", "Adding reminder: $reminder")
-                viewModel.addReminder(reminder)
-                
-                // Schedule notification for the reminder
-                NotificationScheduler.scheduleReminderNotification(this, reminder)
-                
-                // Force refresh the reminders list
-                viewModel.loadUpcomingReminders()
-                
-                Toast.makeText(this, "Bill reminder added successfully!", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            } else {
-                Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
+            datePicker.addOnPositiveButtonClickListener { selection ->
+                val date = java.time.Instant.ofEpochMilli(selection).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                selectedDate = date.atStartOfDay()
+                dateButton.text = selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
             }
+            
+            datePicker.show(supportFragmentManager, "DATE_PICKER")
         }
-
-        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCancel).setOnClickListener {
-            dialog.dismiss()
-        }
-
+        
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Add Bill Reminder")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val title = titleEditText.text.toString()
+                val amount = amountEditText.text.toString().toDoubleOrNull() ?: 0.0
+                val notes = notesEditText.text.toString()
+                
+                if (title.isNotBlank() && amount > 0) {
+                    val reminder = com.example.walletlens.data.entity.Reminder(
+                        title = title,
+                        description = notes.ifBlank { "Bill payment reminder" },
+                        amount = amount,
+                        dueDate = selectedDate,
+                        category = "Bills"
+                    )
+                    
+                    // Save reminder to database
+                    Log.d("MainActivity", "Adding reminder: $reminder")
+                    viewModel.addReminder(reminder)
+                    
+                    // Schedule notification for the reminder
+                    NotificationScheduler.scheduleReminderNotification(this, reminder)
+                    
+                    Toast.makeText(this, "Bill reminder added successfully!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+        
         dialog.show()
     }
     
@@ -946,6 +985,12 @@ class MainActivity : AppCompatActivity() {
                 showBalanceDetailsDialog()
             }
             
+            // Budget settings button
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnBudgetSettings)?.setOnClickListener {
+                Log.d("MainActivity", "Budget settings button clicked")
+                showBudgetSettingsDialog()
+            }
+            
             Log.d("MainActivity", "Setting up bottom navigation listener...")
             binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
                 Log.d("MainActivity", "Bottom navigation clicked: ${menuItem.itemId}")
@@ -983,6 +1028,137 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Error setting up click listeners: ${e.message}", e)
         }
+    }
+    
+    private fun showBudgetSettingsDialog() {
+        // Launch the new BudgetSettingsActivity
+        val intent = Intent(this, BudgetSettingsActivity::class.java)
+        startActivity(intent)
+    }
+    
+    private fun showEditReminderDialog(reminder: com.example.walletlens.data.entity.Reminder) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_reminder, null)
+        
+        // Initialize views
+        val titleEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etBillTitle)
+        val amountEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etAmount)
+        val notesEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etNotes)
+        val dateButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSelectDate)
+        
+        // Pre-fill with current reminder data
+        titleEditText.setText(reminder.title)
+        amountEditText.setText(reminder.amount.toString())
+        notesEditText.setText(reminder.description)
+        dateButton.text = reminder.dueDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+        
+        var selectedDate = reminder.dueDate
+        
+        // Date picker functionality
+        dateButton.setOnClickListener {
+            val currentDate = selectedDate.toLocalDate()
+            val datePicker = com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Select Due Date")
+                .setSelection(com.google.android.material.datepicker.MaterialDatePicker.todayInUtcMilliseconds())
+                .build()
+            
+            datePicker.addOnPositiveButtonClickListener { selection ->
+                val date = java.time.Instant.ofEpochMilli(selection).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                selectedDate = date.atStartOfDay()
+                dateButton.text = selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            }
+            
+            datePicker.show(supportFragmentManager, "DATE_PICKER")
+        }
+        
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Edit Bill Reminder")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val title = titleEditText.text.toString()
+                val amount = amountEditText.text.toString().toDoubleOrNull() ?: 0.0
+                val notes = notesEditText.text.toString()
+                
+                if (title.isNotBlank() && amount > 0) {
+                    val updatedReminder = reminder.copy(
+                        title = title,
+                        amount = amount,
+                        description = notes,
+                        dueDate = selectedDate
+                    )
+                    
+                    viewModel.updateReminder(updatedReminder)
+                    Toast.makeText(this, "Bill reminder updated", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+        
+        dialog.show()
+    }
+    
+    private fun showMarkAsPaidDialog(reminder: com.example.walletlens.data.entity.Reminder) {
+        AlertDialog.Builder(this)
+            .setTitle("Mark as Paid")
+            .setMessage("Mark '${reminder.title}' as paid? This will remove it from your upcoming bills.")
+            .setPositiveButton("Mark as Paid") { _, _ ->
+                // Mark the reminder as completed
+                viewModel.markReminderAsCompleted(reminder.id)
+                Toast.makeText(this, "${reminder.title} marked as paid", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun createCustomLegend(categoryTotals: Map<String, Double>, colors: List<Int>) {
+        val legendContainer = findViewById<LinearLayout>(R.id.legendContainer)
+        legendContainer?.removeAllViews()
+        
+        categoryTotals.entries.forEachIndexed { index, (category, amount) ->
+            val legendItem = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    bottomMargin = 6.dpToPx()
+                }
+            }
+            
+            // Color dot
+            val colorDot = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(12.dpToPx(), 12.dpToPx()).apply {
+                    marginEnd = 12.dpToPx()
+                }
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(colors.getOrElse(index) { colors.last() })
+                }
+            }
+            
+            // Category name and amount
+            val textView = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                text = "$category - $${String.format("%.2f", amount)}"
+                textSize = 14f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary_text))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+            
+            legendItem.addView(colorDot)
+            legendItem.addView(textView)
+            legendContainer?.addView(legendItem)
+        }
+    }
+    
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
     }
 
 }

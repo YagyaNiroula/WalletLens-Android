@@ -47,6 +47,10 @@
             android:name=".ui.receipt.ReceiptScannerActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+            
+        <activity
+            android:name=".BudgetSettingsActivity"
+            android:exported="false" />
 
         
 

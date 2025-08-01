@@ -5,38 +5,39 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="@color/primary_light">
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/card_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
+        <!-- Left Side - Icon -->
         <ImageView
             android:id="@+id/ivTransactionIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_vertical"
-            android:background="@drawable/circle_background"
-            android:padding="12dp"
-            android:src="@android:drawable/ic_menu_info_details"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/transaction_icon_background"
+            android:padding="8dp"
+            android:src="@drawable/ic_food_dining"
             android:contentDescription="Transaction icon" />
 
+        <!-- Middle Section - Text Details -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tvTransactionDescription"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Transaction Description"
+                android:text="Receipt"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/primary_text" />
@@ -45,53 +46,46 @@
                 android:id="@+id/tvTransactionCategory"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Category"
+                android:text="Food &amp; Dining"
                 android:textSize="14sp"
                 android:textColor="@color/secondary_text"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="2dp" />
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvTransactionDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <TextView
-                    android:id="@+id/tvTransactionDate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Jan 01, 2024"
-                    android:textSize="12sp"
-                    android:textColor="@color/secondary_text" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=" • "
-                    android:textSize="12sp"
-                    android:textColor="@color/secondary_text" />
-
-                <TextView
-                    android:id="@+id/tvTransactionTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="12:00 PM"
-                    android:textSize="12sp"
-                    android:textColor="@color/secondary_text" />
-
-            </LinearLayout>
+                android:text="July 31, 2025"
+                android:textSize="12sp"
+                android:textColor="@color/secondary_text"
+                android:layout_marginTop="2dp" />
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvTransactionAmount"
+        <!-- Right Side - Amount and Arrow -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:text="$0.00"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/holo_red_dark" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvTransactionAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$55.26"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/expense_red"
+                android:layout_marginEnd="8dp" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_arrow_right_small"
+                android:tint="@color/secondary_text" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

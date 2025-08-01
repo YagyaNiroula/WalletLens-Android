@@ -68,6 +68,19 @@ class MainViewModel(
     private val _expenseChange = MutableLiveData<Double>(0.0)
     val expenseChange: LiveData<Double> = _expenseChange
     
+    // Budget tracking
+    private val _monthlyBudget = MutableLiveData<Double>(1000.0) // Default budget
+    val monthlyBudget: LiveData<Double> = _monthlyBudget
+    
+    private val _budgetSpent = MutableLiveData<Double>(0.0)
+    val budgetSpent: LiveData<Double> = _budgetSpent
+    
+    private val _budgetRemaining = MutableLiveData<Double>(1000.0)
+    val budgetRemaining: LiveData<Double> = _budgetRemaining
+    
+    private val _budgetUsedPercentage = MutableLiveData<Double>(0.0)
+    val budgetUsedPercentage: LiveData<Double> = _budgetUsedPercentage
+    
     // Performance optimization flags
     private var isDataLoaded = false
     
@@ -194,6 +207,9 @@ class MainViewModel(
         _totalExpense.value = expense
         _balance.value = income - expense
         
+        // Calculate budget metrics
+        calculateBudgetMetrics(expense)
+        
         // Calculate changes after totals are updated
         calculateChanges()
     }
@@ -219,6 +235,28 @@ class MainViewModel(
         
         _incomeChange.value = incomeChangePercent
         _expenseChange.value = expenseChangePercent
+    }
+    
+    private fun calculateBudgetMetrics(expense: Double) {
+        val budget = _monthlyBudget.value ?: 1000.0
+        
+        _budgetSpent.value = expense
+        _budgetRemaining.value = budget - expense
+        _budgetUsedPercentage.value = if (budget > 0) {
+            (expense / budget) * 100
+        } else {
+            0.0
+        }
+        
+        Log.d("MainViewModel", "Budget metrics calculated - Spent: $expense, Budget: $budget, Remaining: ${_budgetRemaining.value}, Used: ${_budgetUsedPercentage.value}%")
+    }
+    
+    // Method to update monthly budget
+    fun updateMonthlyBudget(newBudget: Double) {
+        _monthlyBudget.value = newBudget
+        // Recalculate budget metrics with current expense
+        val currentExpense = _totalExpense.value ?: 0.0
+        calculateBudgetMetrics(currentExpense)
     }
     
     private fun loadBudgets() {
@@ -346,6 +384,24 @@ class MainViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error adding reminder: ${e.message}", e)
+            }
+        }
+    }
+    
+    fun updateReminder(reminder: Reminder) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("MainViewModel", "Updating reminder: $reminder")
+                reminderRepository.updateReminder(reminder)
+                
+                // Refresh reminders list
+                loadUpcomingReminders()
+                
+                withContext(Dispatchers.Main) {
+                    Log.d("MainViewModel", "Reminder updated successfully")
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error updating reminder: ${e.message}", e)
             }
         }
     }

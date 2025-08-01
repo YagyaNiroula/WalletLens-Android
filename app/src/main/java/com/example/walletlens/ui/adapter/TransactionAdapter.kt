@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.walletlens.data.entity.Transaction
 import com.example.walletlens.data.entity.TransactionType
 import com.example.walletlens.databinding.ItemTransactionBinding
+import com.example.walletlens.R
 import java.time.format.DateTimeFormatter
 
 class TransactionAdapter(
@@ -39,7 +40,6 @@ class TransactionAdapter(
                 tvTransactionCategory.text = transaction.category
                 tvTransactionAmount.text = "$${String.format("%.2f", transaction.amount)}"
                 tvTransactionDate.text = transaction.date.format(dateFormatter)
-                tvTransactionTime.text = transaction.date.format(timeFormatter)
 
                 // Set color based on transaction type
                 val colorRes = if (transaction.type == TransactionType.INCOME) {
@@ -51,16 +51,47 @@ class TransactionAdapter(
                     root.context.getColor(colorRes)
                 )
 
-                // Set icon based on category (simplified for performance)
-                val iconRes = when (transaction.category.lowercase()) {
-                    "food & dining" -> android.R.drawable.ic_menu_edit
-                    "transportation" -> android.R.drawable.ic_menu_directions
-                    "shopping" -> android.R.drawable.ic_menu_gallery
-                    "entertainment" -> android.R.drawable.ic_menu_view
-                    "utilities" -> android.R.drawable.ic_menu_manage
-                    else -> android.R.drawable.ic_menu_info_details
+                // Set icon and background based on category and type
+                val iconRes: Int
+                val backgroundColorRes: Int
+                
+                when {
+                    transaction.type == TransactionType.INCOME -> {
+                        when (transaction.category.lowercase()) {
+                            "salary" -> {
+                                iconRes = R.drawable.ic_salary
+                                backgroundColorRes = R.color.income_green
+                            }
+                            "freelance" -> {
+                                iconRes = R.drawable.ic_freelance
+                                backgroundColorRes = R.color.income_green
+                            }
+                            else -> {
+                                iconRes = R.drawable.ic_balance
+                                backgroundColorRes = R.color.income_green
+                            }
+                        }
+                    }
+                    else -> {
+                        when (transaction.category.lowercase()) {
+                            "food & dining" -> {
+                                iconRes = R.drawable.ic_food_dining
+                                backgroundColorRes = R.color.expense_red
+                            }
+                            "transportation" -> {
+                                iconRes = R.drawable.ic_transportation
+                                backgroundColorRes = R.color.expense_red
+                            }
+                            else -> {
+                                iconRes = R.drawable.ic_transaction
+                                backgroundColorRes = R.color.expense_red
+                            }
+                        }
+                    }
                 }
+                
                 ivTransactionIcon.setImageResource(iconRes)
+                ivTransactionIcon.background = root.context.getDrawable(backgroundColorRes)
 
                 // Handle click
                 root.setOnClickListener {

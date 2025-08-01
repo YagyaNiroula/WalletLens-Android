@@ -38,8 +38,7 @@ class TransactionsActivity : AppCompatActivity() {
         
         setupViewModel()
         setupRecyclerView()
-        setupToolbar()
-        setupMonthSelector()
+        setupMonthNavigation()
         observeData()
     }
     
@@ -84,38 +83,28 @@ class TransactionsActivity : AppCompatActivity() {
         }
     }
     
-    private fun setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener {
-            finish()
+    private fun setupMonthNavigation() {
+        // Set current month
+        updateMonthDisplay()
+        
+        // Previous month button
+        binding.btnPreviousMonth.setOnClickListener {
+            selectedYearMonth = selectedYearMonth.minusMonths(1)
+            updateMonthDisplay()
+            filterTransactionsByMonth()
+        }
+        
+        // Next month button
+        binding.btnNextMonth.setOnClickListener {
+            selectedYearMonth = selectedYearMonth.plusMonths(1)
+            updateMonthDisplay()
+            filterTransactionsByMonth()
         }
     }
     
-    private fun setupMonthSelector() {
-        val monthSpinner = binding.spinnerMonth
-        
-        // Generate available months (last 12 months)
-        val availableMonths = mutableListOf<String>()
-        val currentMonth = YearMonth.now()
-        
-        for (i in 0..11) {
-            val month = currentMonth.minusMonths(i.toLong())
-            val monthText = month.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
-            availableMonths.add(monthText)
-        }
-        
-        val monthAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, availableMonths)
-        monthSpinner.setAdapter(monthAdapter)
-        
-        // Set current month as default
-        val currentMonthText = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
-        monthSpinner.setText(currentMonthText, false)
-        
-        // Handle month selection
-        monthSpinner.setOnItemClickListener { _, _, position, _ ->
-            val selectedMonthText = availableMonths[position]
-            selectedYearMonth = YearMonth.parse(selectedMonthText, DateTimeFormatter.ofPattern("MMMM yyyy"))
-            filterTransactionsByMonth()
-        }
+    private fun updateMonthDisplay() {
+        val monthText = selectedYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+        binding.tvCurrentMonth.text = monthText
     }
     
     private fun observeData() {
@@ -163,12 +152,13 @@ class TransactionsActivity : AppCompatActivity() {
     }
     
     private fun updateTransactionCount(count: Int) {
-        val monthText = selectedYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
-        binding.tvTransactionCount.text = "$monthText ($count)"
+        // Transaction count is now handled in the month navigation
+        // No separate count display needed
     }
     
     private fun updateMonthHeader() {
-        binding.toolbar.title = ""
+        // Month header is now handled in the navigation bar
+        // No separate header needed
     }
     
     private fun updateEmptyState(isEmpty: Boolean) {

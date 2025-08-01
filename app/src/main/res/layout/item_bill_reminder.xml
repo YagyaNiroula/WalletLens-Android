@@ -1,108 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="8dp"
-    android:layout_marginVertical="4dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="@color/primary_light">
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/tvReminderTitle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:text="Car Payment"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_text"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
-            <TextView
-                android:id="@+id/tvReminderTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Electricity Bill"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary_text"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/tvReminderDescription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Monthly electricity payment"
-                android:textSize="14sp"
-                android:textColor="@color/secondary_text"
-                android:layout_marginTop="2dp"
-                android:maxLines="2"
-                android:ellipsize="end" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="8dp">
-
-                <TextView
-                    android:id="@+id/tvReminderAmount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="$120.00"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary_color"
-                    android:background="@drawable/amount_background"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp" />
-
-                <TextView
-                    android:id="@+id/tvReminderCategory"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Utilities"
-                    android:textSize="12sp"
-                    android:textColor="@color/secondary_text"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/category_background"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp" />
-
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvReminderDueDate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Due: Jul 15, 2025"
-                android:textSize="12sp"
-                android:textColor="@color/warning_orange"
-                android:textStyle="bold"
-                android:layout_marginTop="4dp" />
-
-        </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnComplete"
+        <TextView
+            android:id="@+id/tvReminderAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="✓"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:backgroundTint="@color/success_green"
-            app:cornerRadius="20dp"
-            android:minWidth="40dp"
-            android:minHeight="40dp"
-            android:layout_marginStart="8dp" />
+            android:text="$200.00"
+            android:textSize="13sp"
+            android:textColor="@color/primary_text"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/tvReminderDueDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="August 1, 2025"
+            android:textSize="11sp"
+            android:textColor="@color/secondary_text"
+            android:layout_marginTop="2dp" />
 
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView> 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/btnEdit"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_description"
+            android:tint="@color/primary_color"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackground"
+            android:padding="2dp" />
+
+        <View
+            android:id="@+id/btnMarkPaid"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@drawable/circle_background"
+            android:layout_marginEnd="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:backgroundTint="@color/primary_light" />
+
+    </LinearLayout>
+
+</LinearLayout> 
