@@ -67,4 +67,7 @@ interface TransactionDao {
     
     @Query("SELECT category, SUM(amount) as total FROM transactions WHERE type = :type AND date BETWEEN :startDate AND :endDate GROUP BY category ORDER BY total DESC")
     suspend fun getCategoryTotalsDirect(type: TransactionType, startDate: LocalDateTime, endDate: LocalDateTime): List<CategoryTotal>
+    
+    @Query("SELECT * FROM transactions WHERE category = :category AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    suspend fun getTransactionsByCategoryAndDateRange(category: String, startDate: LocalDateTime, endDate: LocalDateTime): List<Transaction>
 } 

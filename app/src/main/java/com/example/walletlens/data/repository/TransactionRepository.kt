@@ -61,4 +61,8 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
     suspend fun getCategoryTotalsDirect(type: TransactionType, startDate: LocalDateTime, endDate: LocalDateTime): List<CategoryTotal> {
         return transactionDao.getCategoryTotalsDirect(type, startDate, endDate)
     }
+    
+    suspend fun getTransactionsByCategoryAndDateRange(category: String, startDate: LocalDateTime, endDate: LocalDateTime): List<Transaction> {
+        return transactionDao.getTransactionsByCategoryAndDateRange(category, startDate, endDate)
+    }
 } 

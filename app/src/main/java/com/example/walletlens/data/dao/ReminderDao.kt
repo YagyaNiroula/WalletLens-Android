@@ -34,4 +34,7 @@ interface ReminderDao {
     
     @Query("SELECT * FROM reminders WHERE dueDate BETWEEN :startDate AND :endDate AND isCompleted = 0 ORDER BY dueDate ASC")
     suspend fun getRemindersByDateRangeDirect(startDate: LocalDateTime, endDate: LocalDateTime): List<Reminder>
+    
+    @Query("SELECT * FROM reminders WHERE id = :id")
+    suspend fun getReminderById(id: Long): Reminder?
 } 

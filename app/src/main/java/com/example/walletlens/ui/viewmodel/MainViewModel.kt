@@ -168,17 +168,17 @@ class MainViewModel(
         }
     }
     
-    private fun loadUpcomingReminders() {
+    fun loadUpcomingReminders() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val now = LocalDateTime.now()
-                val endOfMonth = now.withDayOfMonth(now.month.length(now.toLocalDate().isLeapYear))
-                    .withHour(23).withMinute(59).withSecond(59)
+                // Extend the range to 3 months from now to show more upcoming reminders
+                val endDate = now.plusMonths(3)
                 
-                val reminders = reminderRepository.getRemindersByDateRangeDirect(now, endOfMonth)
+                val reminders = reminderRepository.getRemindersByDateRangeDirect(now, endDate)
                 withContext(Dispatchers.Main) {
                     _upcomingReminders.value = reminders
-                    Log.d("MainViewModel", "Loaded ${reminders.size} reminders")
+                    Log.d("MainViewModel", "Loaded ${reminders.size} reminders from ${now.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"))} to ${endDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))}")
                 }
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error loading reminders: ${e.message}")
@@ -283,6 +283,15 @@ class MainViewModel(
                 Log.d("MainViewModel", "Total reminders in database: ${allReminders.size}")
                 allReminders.forEachIndexed { index, reminder ->
                     Log.d("MainViewModel", "Reminder $index: ${reminder.title} - ${reminder.dueDate} - Completed: ${reminder.isCompleted}")
+                }
+                
+                // Check upcoming reminders specifically
+                val now = LocalDateTime.now()
+                val endDate = now.plusMonths(3)
+                val upcomingReminders = reminderRepository.getRemindersByDateRangeDirect(now, endDate)
+                Log.d("MainViewModel", "Upcoming reminders (${now.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"))} to ${endDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy"))}): ${upcomingReminders.size}")
+                upcomingReminders.forEachIndexed { index, reminder ->
+                    Log.d("MainViewModel", "Upcoming reminder $index: ${reminder.title} - ${reminder.dueDate}")
                 }
                 Log.d("MainViewModel", "=== END DEBUG ===")
             } catch (e: Exception) {

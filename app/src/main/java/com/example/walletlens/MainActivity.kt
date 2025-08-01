@@ -55,6 +55,11 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import android.content.res.ColorStateList
 import android.widget.LinearLayout
+import com.example.walletlens.notification.NotificationScheduler
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : AppCompatActivity() {
     
@@ -62,6 +67,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: MainViewModel
     private lateinit var transactionAdapter: TransactionAdapter
     private lateinit var billRemindersAdapter: BillRemindersAdapter
+    
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Log.d("MainActivity", "Notification permission granted")
+        } else {
+            Log.d("MainActivity", "Notification permission denied")
+        }
+    }
     
 
     
@@ -99,6 +114,12 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Setting up data observers")
             observeData()
             
+            // Request notification permission
+            requestNotificationPermission()
+            
+            // Update widget on app start
+            updateWidget()
+            
             Log.d("MainActivity", "onCreate completed successfully")
             
         } catch (e: Exception) {
@@ -107,8 +128,119 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    Log.d("MainActivity", "Notification permission already granted")
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    // Show rationale dialog
+                    AlertDialog.Builder(this)
+                        .setTitle("Notification Permission")
+                        .setMessage("This app needs notification permission to send you payment reminders and budget warnings.")
+                        .setPositiveButton("Grant Permission") { _, _ ->
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
+                else -> {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+    }
+    
+    private fun updateWidget() {
+        try {
+            val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(this)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(
+                android.content.ComponentName(this, com.example.walletlens.widget.WalletLensWidget::class.java)
+            )
+            
+            if (appWidgetIds.isNotEmpty()) {
+                Log.d("MainActivity", "Updating ${appWidgetIds.size} widgets")
+                appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_today_spending)
+                
+                // Force update all widgets
+                val intent = Intent(this, com.example.walletlens.widget.WalletLensWidget::class.java)
+                intent.action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+                sendBroadcast(intent)
+            } else {
+                Log.d("MainActivity", "No widgets found to update")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error updating widget: ${e.message}", e)
+        }
+    }
+    
+    private fun showQuickAddDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_transaction, null)
+        val amountEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.editTextAmount)
+        val descriptionEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.editTextDescription)
+        val categorySpinner = dialogView.findViewById<AutoCompleteTextView>(R.id.categorySpinner)
+        val transactionTypeToggle = dialogView.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.transactionTypeToggle)
+        
+        // Setup categories
+        val categories = listOf(
+            "Food & Dining", "Transportation", "Shopping", "Entertainment", 
+            "Healthcare", "Utilities", "Housing", "Education", "Other"
+        )
+        val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
+        categorySpinner.setAdapter(categoryAdapter)
+        categorySpinner.setText(categories[0], false)
+        
+        // Set default type to expense
+        transactionTypeToggle.check(R.id.btnExpense)
+        
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Quick Add Transaction")
+            .setView(dialogView)
+            .setPositiveButton("Add") { _, _ ->
+                val amount = amountEditText.text.toString().toDoubleOrNull() ?: 0.0
+                val description = descriptionEditText.text.toString()
+                val category = categorySpinner.text.toString()
+                val type = if (transactionTypeToggle.checkedButtonId == R.id.btnIncome) {
+                    TransactionType.INCOME
+                } else {
+                    TransactionType.EXPENSE
+                }
+                
+                if (amount > 0 && description.isNotBlank()) {
+                    val transaction = Transaction(
+                        amount = amount,
+                        description = description,
+                        category = category,
+                        type = type,
+                        date = LocalDateTime.now()
+                    )
+                    
+                    viewModel.addTransaction(transaction)
+                    updateWidget()
+                    
+                    val message = if (type == TransactionType.INCOME) "Income added!" else "Expense added!"
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Please enter amount and description", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+        
+        dialog.show()
+    }
+    
     override fun onResume() {
         super.onResume()
+        
+        // Handle widget quick-add action
+        handleWidgetAction()
+        
         // Check if there's receipt data from camera
         val sharedPrefs = getSharedPreferences("receipt_data", MODE_PRIVATE)
         val receiptPath = sharedPrefs.getString("last_receipt_path", null)
@@ -126,6 +258,19 @@ class MainActivity : AppCompatActivity() {
             viewModel.viewModelScope.launch {
                 PerformanceOptimizer.optimizePerformance(this@MainActivity)
             }
+        }
+    }
+    
+    private fun handleWidgetAction() {
+        val action = intent?.action
+        val widgetAction = intent?.getStringExtra("widget_action")
+        
+        if (action == "QUICK_ADD_TRANSACTION" || widgetAction == "quick_add") {
+            Log.d("MainActivity", "Widget quick-add action received")
+            // Clear the intent to prevent multiple triggers
+            intent?.replaceExtras(android.os.Bundle())
+            // Show quick-add dialog
+            showQuickAddDialog()
         }
     }
     
@@ -307,9 +452,12 @@ class MainActivity : AppCompatActivity() {
             viewModel.upcomingReminders.observe(this) { reminders ->
                 try {
                     Log.d("MainActivity", "Reminders updated: ${reminders.size} reminders")
-                    Log.d("MainActivity", "Reminders: ${reminders.map { it.title }}")
+                    Log.d("MainActivity", "Reminders: ${reminders.map { "${it.title} - ${it.dueDate}" }}")
                     billRemindersAdapter.updateReminders(reminders)
                     updateRemindersVisibility(reminders.isEmpty())
+                    
+                    // Debug: Check if adapter is properly updated
+                    Log.d("MainActivity", "Adapter item count: ${billRemindersAdapter.itemCount}")
                 } catch (e: Exception) {
                     Log.e("MainActivity", "Error updating reminders: ${e.message}")
                 }
@@ -508,6 +656,13 @@ class MainActivity : AppCompatActivity() {
                     )
                     Log.d("MainActivity", "Creating transaction: $transaction")
                     viewModel.addTransaction(transaction)
+                    
+                    // Schedule immediate budget check after adding transaction
+                    NotificationScheduler.scheduleImmediateBudgetCheck(this)
+                    
+                    // Update widget after adding transaction
+                    updateWidget()
+                    
                     val message = if (type == TransactionType.INCOME) "Income added!" else "Expense added!"
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 } else {
@@ -620,7 +775,15 @@ class MainActivity : AppCompatActivity() {
                 )
                 
                 // Save reminder to database
+                Log.d("MainActivity", "Adding reminder: $reminder")
                 viewModel.addReminder(reminder)
+                
+                // Schedule notification for the reminder
+                NotificationScheduler.scheduleReminderNotification(this, reminder)
+                
+                // Force refresh the reminders list
+                viewModel.loadUpcomingReminders()
+                
                 Toast.makeText(this, "Bill reminder added successfully!", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             } else {
@@ -721,6 +884,37 @@ class MainActivity : AppCompatActivity() {
                 Log.d("MainActivity", "Long press on add reminder button - refreshing reminders")
                 viewModel.refreshData()
                 viewModel.debugCheckDatabase()
+                
+                // Test notification
+                val notificationHelper = com.example.walletlens.notification.NotificationHelper(this)
+                notificationHelper.showGeneralNotification(
+                    "Test Notification",
+                    "This is a test notification to verify the system is working!"
+                )
+                
+                // Test: Add a reminder for today
+                val testReminder = com.example.walletlens.data.entity.Reminder(
+                    title = "Test Bill",
+                    description = "Test reminder for debugging",
+                    amount = 50.0,
+                    dueDate = LocalDateTime.now().plusDays(1),
+                    category = "Test"
+                )
+                viewModel.addReminder(testReminder)
+                
+                // Test: Update widget
+                updateWidget()
+                
+                // Test: Add a transaction to see if widget updates
+                val testTransaction = com.example.walletlens.data.entity.Transaction(
+                    amount = 25.50,
+                    description = "Test transaction for widget",
+                    category = "Test",
+                    type = com.example.walletlens.data.entity.TransactionType.EXPENSE,
+                    date = LocalDateTime.now()
+                )
+                viewModel.addTransaction(testTransaction)
+                
                 true
             }
             

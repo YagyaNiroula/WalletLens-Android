@@ -29,4 +29,8 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
     suspend fun deactivateBudget(id: Long) {
         budgetDao.deactivateBudget(id)
     }
+    
+    suspend fun getActiveBudgets(): List<Budget> {
+        return budgetDao.getActiveBudgets()
+    }
 } 

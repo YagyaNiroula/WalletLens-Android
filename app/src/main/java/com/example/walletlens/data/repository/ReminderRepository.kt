@@ -43,4 +43,8 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
     suspend fun getRemindersByDateRangeDirect(startDate: LocalDateTime, endDate: LocalDateTime): List<Reminder> {
         return reminderDao.getRemindersByDateRangeDirect(startDate, endDate)
     }
+    
+    suspend fun getReminderById(id: Long): Reminder? {
+        return reminderDao.getReminderById(id)
+    }
 } 
